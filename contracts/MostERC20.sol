@@ -4,8 +4,8 @@ import './interfaces/IMostERC20.sol';
 import '@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol';
 import '@uniswap/lib/contracts/libraries/FixedPoint.sol';
 
-import '../libraries/UniswapV2OracleLibrary.sol';
-import '../libraries/UniswapV2Library.sol';
+import './libraries/UniswapV2OracleLibrary.sol';
+import './libraries/UniswapV2Library.sol';
 
 contract MostERC20 is IMostERC20 {
     using FixedPoint for *;

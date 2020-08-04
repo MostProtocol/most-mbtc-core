@@ -16,7 +16,8 @@
   ],
   "dependencies": {
     "@uniswap/lib": "1.1.1",
-    "@uniswap/v2-core": "1.0.0"
+    "@uniswap/v2-core": "1.0.0",
+    "dotenv": "^8.2.0"
   },
   "devDependencies": {
     "@types/chai": "^4.2.6",
@@ -37,7 +38,7 @@
     "lint:fix": "yarn prettier ./test/*.ts --write",
     "clean": "rimraf ./build/",
     "precompile": "yarn clean",
-    "compile": "waffle .waffle.json",
+    "compile": "truffle compile",
     "pretest": "yarn compile",
     "test": "mocha",
     "prepublishOnly": "yarn test"
