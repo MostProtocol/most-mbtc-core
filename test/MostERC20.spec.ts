@@ -4,7 +4,7 @@ import { MaxUint256 } from 'ethers/constants'
 import { BigNumber } from 'ethers/utils'
 import { solidity, MockProvider, createFixtureLoader } from 'ethereum-waffle'
 
-import { expandTo9Decimals, mineBlock } from './shared/utilities'
+import { expandTo9Decimals, expandTo18Decimals, mineBlock } from './shared/utilities'
 import { v2Fixture } from './shared/fixtures'
 
 chai.use(solidity)
@@ -16,9 +16,11 @@ const overrides = {
 const TOTAL_SUPPLY = expandTo9Decimals(1000000)
 const TEST_AMOUNT = expandTo9Decimals(10)
 const tokenAmount = expandTo9Decimals(5)
-const tokenAnotherAmount = expandTo9Decimals(10)
+const tokenLargeAmount = expandTo9Decimals(10)
+const tokenAnotherAmount = expandTo18Decimals(10)
+const tokenAnotherSmallAmount = expandTo18Decimals(5)
 const tokenClose0Amount = expandTo9Decimals(50)
-const tokenClose1Amount = expandTo9Decimals(52)
+const tokenClose1Amount = expandTo18Decimals(52)
 
 describe('MostERC20', () => {
   const provider = new MockProvider({
@@ -34,6 +36,7 @@ describe('MostERC20', () => {
   let token1: Contract
   let pair: Contract
   let factory: Contract
+  let mostHelper: Contract
 
   async function addLiquidity(amountA: BigNumber, amountB: BigNumber) {
     if (token0.address === token.address) {
@@ -53,6 +56,7 @@ describe('MostERC20', () => {
     token = fixture.token
     pair = fixture.pair
     factory = fixture.factoryV2
+    mostHelper = fixture.mostHelper
   })
 
   it('name, symbol, decimals, totalSupply, balanceOf', async () => {
@@ -116,54 +120,56 @@ describe('MostERC20', () => {
     await mineBlock(provider, blockTimestamp + 60 * 60 * 24)
     await token.rebase(overrides)
 
-    expect(await token.consult(token.address, 100)).to.eq(200)
+    expect(await token.consult(token.address, 100)).to.eq('200000000000')
   })
 
   it('rebase deflation', async () => {
     await addLiquidity(tokenAmount, tokenAnotherAmount)
-    await token.initialize(factory.address, token0.address === token.address ? token1.address : token0.address)
+    await token.initialize(factory.address, token.address === token0.address ? token1.address : token0.address)
     expect(await token.totalSupply()).to.eq(TOTAL_SUPPLY)
     expect(await token.balanceOf(wallet.address)).to.eq('999995000000000')
     expect(await token.balanceOf(pair.address)).to.eq(tokenAmount)
     const blockTimestamp = (await pair.getReserves())[2]
     await mineBlock(provider, blockTimestamp + 60 * 60 * 24)
     await token.rebase(overrides)
+    expect(await token.consult(token.address, 100)).to.eq('200000000000')
     expect(await token.totalSupply()).to.eq('950000000000000')
     expect(await token.balanceOf(wallet.address)).to.eq('949995250000000')
     expect(await token.balanceOf(pair.address)).to.eq('4750000000')
 
-    expect(await token.consult(token.address, 100)).to.eq(200)
+    expect(await token.consult(token.address, 100)).to.eq('200000000000')
   })
 
   it('rebase inflation', async () => {
-    await addLiquidity(tokenAnotherAmount, tokenAmount)
-    await token.initialize(factory.address, token0.address === token.address ? token1.address : token0.address)
+    await addLiquidity(tokenLargeAmount, tokenAnotherSmallAmount)
+    await token.initialize(factory.address, token.address === token0.address ? token1.address : token0.address)
     expect(await token.totalSupply()).to.eq(TOTAL_SUPPLY)
     expect(await token.balanceOf(wallet.address)).to.eq('999990000000000')
-    expect(await token.balanceOf(pair.address)).to.eq(tokenAnotherAmount)
+    expect(await token.balanceOf(pair.address)).to.eq(tokenLargeAmount)
     const blockTimestamp = (await pair.getReserves())[2]
     await mineBlock(provider, blockTimestamp + 60 * 60 * 24)
     await token.rebase(overrides)
+    expect(await token.consult(token.address, 100)).to.eq('50000000000')
     expect(await token.totalSupply()).to.eq('1050000000000000')
     expect(await token.balanceOf(wallet.address)).to.eq('1049989500000000')
     expect(await token.balanceOf(pair.address)).to.eq('10500000000')
 
-    expect(await token.consult(token.address, 100)).to.eq(50)
+    expect(await token.consult(token.address, 100)).to.eq('50000000000')
   })
 
   it('rebase stable', async () => {
-    await addLiquidity(tokenClose1Amount, tokenClose0Amount)
+    await addLiquidity(tokenClose0Amount, tokenClose1Amount)
     await token.initialize(factory.address, token0.address === token.address ? token1.address : token0.address)
     expect(await token.totalSupply()).to.eq(TOTAL_SUPPLY)
-    expect(await token.balanceOf(wallet.address)).to.eq('999948000000000')
-    expect(await token.balanceOf(pair.address)).to.eq(tokenClose1Amount)
+    expect(await token.balanceOf(wallet.address)).to.eq('999950000000000')
+    expect(await token.balanceOf(pair.address)).to.eq(tokenClose0Amount)
     const blockTimestamp = (await pair.getReserves())[2]
     await mineBlock(provider, blockTimestamp + 60 * 60 * 24)
     await token.rebase(overrides)
     expect(await token.totalSupply()).to.eq(TOTAL_SUPPLY)
-    expect(await token.balanceOf(wallet.address)).to.eq('999948000000000')
-    expect(await token.balanceOf(pair.address)).to.eq(tokenClose1Amount)
+    expect(await token.balanceOf(wallet.address)).to.eq('999950000000000')
+    expect(await token.balanceOf(pair.address)).to.eq(tokenClose0Amount)
 
-    expect(await token.consult(token.address, 100)).to.eq(96)
+    expect(await token.consult(token.address, 100)).to.eq(104000000000)
   })
 })
