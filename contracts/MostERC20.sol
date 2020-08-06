@@ -24,9 +24,9 @@ contract MostERC20 is IMostERC20 {
 
     uint private constant MAX_UINT256 = ~uint256(0);
     uint private constant INITIAL_FRAGMENTS_SUPPLY = 1 * 10**6 * 10**uint(decimals);
-    uint private constant RATE_BASE = 1000000;
-    uint private constant UPPER_BOUND = 1060000;
-    uint private constant LOWER_BOUND = 960000;
+    uint8 private constant RATE_BASE = 100;
+    uint8 private constant UPPER_BOUND = 106;
+    uint8 private constant LOWER_BOUND = 96;
 
     // TOTAL_GONS is a multiple of INITIAL_FRAGMENTS_SUPPLY so that gonsPerFragment is an integer.
     // Use the highest value that fits in a uint256 for max granularity.
@@ -133,18 +133,20 @@ contract MostERC20 is IMostERC20 {
         price1CumulativeLast = price1Cumulative;
         blockTimestampLast = blockTimestamp;
 
-        uint priceAverage;
-        if (address(this) == token0) {
-            priceAverage = price0Average.mul(RATE_BASE).decode144();
-        } else {
-            priceAverage = price1Average.mul(RATE_BASE).decode144();
-        }
+        uint priceAverage = consult(address(this), 10**uint(decimals));
 
+        uint tokenBDecimals;
+        if (address(this) == token0) {
+            tokenBDecimals = IMostERC20(token1).decimals();
+        } else {
+            tokenBDecimals = IMostERC20(token0).decimals();
+        }
+        uint unitBase = RATE_BASE * 10 ** (tokenBDecimals - 2);
         int256 supplyDelta;
-        if (priceAverage > UPPER_BOUND) {
-            supplyDelta = 0 - int(totalSupply.mul(priceAverage.sub(RATE_BASE)) / priceAverage);
-        } else if (priceAverage < LOWER_BOUND) {
-            supplyDelta = int(totalSupply.mul(RATE_BASE.sub(priceAverage)) / RATE_BASE);
+        if (priceAverage > UPPER_BOUND * 10 ** (tokenBDecimals - 2)) {
+            supplyDelta = 0 - int(totalSupply.mul(priceAverage.sub(unitBase)) / priceAverage);
+        } else if (priceAverage < LOWER_BOUND * 10 ** (tokenBDecimals - 2)) {
+            supplyDelta = int(totalSupply.mul(unitBase.sub(priceAverage)) / unitBase);
         } else {
             supplyDelta = 0;
         }
@@ -184,7 +186,7 @@ contract MostERC20 is IMostERC20 {
     }
 
     // note this will always return 0 before update has been called successfully for the first time.
-    function consult(address token, uint amountIn) external view override returns (uint amountOut) {
+    function consult(address token, uint amountIn) public view override returns (uint amountOut) {
         if (token == token0) {
             amountOut = price0Average.mul(amountIn).decode144();
         } else {
