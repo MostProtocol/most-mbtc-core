@@ -38,6 +38,7 @@ contract MostERC20 is IMostERC20 {
     uint private gonsPerFragment;
 
     IUniswapV2Pair pair;
+    address public override rebaseSetter;
     address public override creator;
     address public override token0;
     address public override token1;
@@ -75,8 +76,6 @@ contract MostERC20 is IMostERC20 {
         uint112 reserve1;
         (reserve0, reserve1, blockTimestampLast) = _pair.getReserves();
         require(reserve0 != 0 && reserve1 != 0, 'MOST: NO_RESERVES'); // ensure that there's liquidity in the pair
-
-        creator = address(0);
     }
 
     function _approve(address owner, address spender, uint value) private {
@@ -113,8 +112,9 @@ contract MostERC20 is IMostERC20 {
         return true;
     }
 
-    function rebase() external override returns (uint)
-    {
+    function rebase() external override returns (uint) {
+        require(msg.sender == rebaseSetter, 'MOST: FORBIDDEN'); // sufficient check
+
         (uint price0Cumulative, uint price1Cumulative, uint32 blockTimestamp) =
             UniswapV2OracleLibrary.currentCumulativePrices(address(pair));
         uint32 timeElapsed = blockTimestamp - blockTimestampLast; // overflow is desired
@@ -183,6 +183,16 @@ contract MostERC20 is IMostERC20 {
 
         emit LogRebase(epoch, totalSupply);
         return totalSupply;
+    }
+
+    function setRebaseSetter(address _rebaseSetter) external override {
+        require(msg.sender == creator, 'MOST: FORBIDDEN');
+        rebaseSetter = _rebaseSetter;
+    }
+
+    function setCreator(address _creator) external override {
+        require(msg.sender == creator, 'MOST: FORBIDDEN');
+        creator = _creator;
     }
 
     // note this will always return 0 before update has been called successfully for the first time.

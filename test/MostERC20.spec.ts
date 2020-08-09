@@ -112,6 +112,8 @@ describe('MostERC20', () => {
     await addLiquidity(tokenAmount, tokenAnotherAmount)
     expect(await token.creator()).to.eq(wallet.address)
     await token.initialize(factory.address, token0.address === token.address ? token1.address : token0.address)
+    await token.setRebaseSetter(wallet.address)
+    await token.setCreator('0x0000000000000000000000000000000000000000')
     expect(await token.creator()).to.eq('0x0000000000000000000000000000000000000000')
     await expect(token.initialize(factory.address, token0.address === token.address ? token1.address : token0.address)).to.be.reverted
     const blockTimestamp = (await pair.getReserves())[2]
@@ -126,6 +128,7 @@ describe('MostERC20', () => {
   it('rebase deflation', async () => {
     await addLiquidity(tokenAmount, tokenAnotherAmount)
     await token.initialize(factory.address, token.address === token0.address ? token1.address : token0.address)
+    await token.setRebaseSetter(wallet.address)
     expect(await token.totalSupply()).to.eq(TOTAL_SUPPLY)
     expect(await token.balanceOf(wallet.address)).to.eq('999995000000000')
     expect(await token.balanceOf(pair.address)).to.eq(tokenAmount)
@@ -143,6 +146,7 @@ describe('MostERC20', () => {
   it('rebase inflation', async () => {
     await addLiquidity(tokenLargeAmount, tokenAnotherSmallAmount)
     await token.initialize(factory.address, token.address === token0.address ? token1.address : token0.address)
+    await token.setRebaseSetter(wallet.address)
     expect(await token.totalSupply()).to.eq(TOTAL_SUPPLY)
     expect(await token.balanceOf(wallet.address)).to.eq('999990000000000')
     expect(await token.balanceOf(pair.address)).to.eq(tokenLargeAmount)
@@ -160,6 +164,7 @@ describe('MostERC20', () => {
   it('rebase stable', async () => {
     await addLiquidity(tokenClose0Amount, tokenClose1Amount)
     await token.initialize(factory.address, token0.address === token.address ? token1.address : token0.address)
+    await token.setRebaseSetter(wallet.address)
     expect(await token.totalSupply()).to.eq(TOTAL_SUPPLY)
     expect(await token.balanceOf(wallet.address)).to.eq('999950000000000')
     expect(await token.balanceOf(pair.address)).to.eq(tokenClose0Amount)
