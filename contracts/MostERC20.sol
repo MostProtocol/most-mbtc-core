@@ -1,6 +1,7 @@
 pragma solidity =0.6.6;
 
 import './interfaces/IMostERC20.sol';
+import './interfaces/IERC20.sol';
 import '@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol';
 import '@uniswap/lib/contracts/libraries/FixedPoint.sol';
 
@@ -37,7 +38,7 @@ contract MostERC20 is IMostERC20 {
 
     uint private gonsPerFragment;
 
-    IUniswapV2Pair pair;
+    address public override pair;
     address public override rebaseSetter;
     address public override creator;
     address public override token0;
@@ -67,7 +68,7 @@ contract MostERC20 is IMostERC20 {
         require(msg.sender == creator, 'MOST: FORBIDDEN'); // sufficient check
 
         IUniswapV2Pair _pair = IUniswapV2Pair(UniswapV2Library.pairFor(factory, address(this), tokenB));
-        pair = _pair;
+        pair = address(_pair);
         token0 = _pair.token0();
         token1 = _pair.token1();
         price0CumulativeLast = _pair.price0CumulativeLast(); // fetch the current accumulated price value (1 / 0)
@@ -116,7 +117,7 @@ contract MostERC20 is IMostERC20 {
         require(msg.sender == rebaseSetter, 'MOST: FORBIDDEN'); // sufficient check
 
         (uint price0Cumulative, uint price1Cumulative, uint32 blockTimestamp) =
-            UniswapV2OracleLibrary.currentCumulativePrices(address(pair));
+            UniswapV2OracleLibrary.currentCumulativePrices(pair);
         uint32 timeElapsed = blockTimestamp - blockTimestampLast; // overflow is desired
 
         // ensure that at least one full period has passed since the last update
@@ -135,17 +136,17 @@ contract MostERC20 is IMostERC20 {
 
         uint priceAverage = consult(address(this), 10**uint(decimals));
 
-        uint tokenBDecimals;
+        uint tokenBRemaining;
         if (address(this) == token0) {
-            tokenBDecimals = IMostERC20(token1).decimals();
+            tokenBRemaining = 10 ** uint(IERC20(token1).decimals() - 2);
         } else {
-            tokenBDecimals = IMostERC20(token0).decimals();
+            tokenBRemaining = 10 ** uint(IERC20(token0).decimals() - 2);
         }
-        uint unitBase = RATE_BASE * 10 ** (tokenBDecimals - 2);
+        uint unitBase = RATE_BASE * tokenBRemaining;
         int256 supplyDelta;
-        if (priceAverage > UPPER_BOUND * 10 ** (tokenBDecimals - 2)) {
+        if (priceAverage > UPPER_BOUND * tokenBRemaining) {
             supplyDelta = 0 - int(totalSupply.mul(priceAverage.sub(unitBase)) / priceAverage);
-        } else if (priceAverage < LOWER_BOUND * 10 ** (tokenBDecimals - 2)) {
+        } else if (priceAverage < LOWER_BOUND * tokenBRemaining) {
             supplyDelta = int(totalSupply.mul(unitBase.sub(priceAverage)) / unitBase);
         } else {
             supplyDelta = 0;

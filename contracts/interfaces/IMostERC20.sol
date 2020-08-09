@@ -19,6 +19,7 @@ interface IMostERC20 {
 
     function PERIOD() external pure returns (uint);
 
+    function pair() external view returns (address);
     function rebaseSetter() external view returns (address);
     function creator() external view returns (address);
     function token0() external view returns (address);
