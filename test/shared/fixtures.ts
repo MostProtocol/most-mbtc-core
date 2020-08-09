@@ -33,7 +33,7 @@ export async function v2Fixture(provider: Web3Provider, [wallet]: Wallet[]): Pro
   const pairAddress = await factoryV2.getPair(tokenA.address, tokenB.address)
   const pair = new Contract(pairAddress, JSON.stringify(IUniswapV2Pair.abi), provider).connect(wallet)
 
-  const mostHelper = await deployContract(wallet, MostHelper)
+  const mostHelper = await deployContract(wallet, MostHelper, [pairAddress, tokenA.address])
 
   const token0Address = await pair.token0()
   const token = tokenA

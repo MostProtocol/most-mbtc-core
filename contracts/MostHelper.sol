@@ -18,6 +18,14 @@ contract MostHelper {
     uint8 private constant LOWER_BOUND = 96;
     uint private constant MAX_SUPPLY = ~uint128(0);  // (2^128) - 1
 
+    address pair;
+    address mostToken;
+
+    constructor(address _pair, address _mostToken) public {
+        pair = _pair;
+        mostToken = _mostToken;
+    }
+
     function consultNow(address factory, address tokenA, address tokenB, uint amountAIn) external view returns (uint amountBOut, int256 supplyDelta, uint totalSupply) {
         IMostERC20 mostTokenA = IMostERC20(tokenA);
         IMostERC20 mostTokenB = IMostERC20(tokenB);
@@ -65,5 +73,10 @@ contract MostHelper {
         if (totalSupply > MAX_SUPPLY) {
             totalSupply = MAX_SUPPLY;
         }
+    }
+
+    function rebase() external returns (uint totalSupply) {
+        totalSupply = IMostERC20(mostToken).rebase();
+        IUniswapV2Pair(pair).sync();
     }
 }
