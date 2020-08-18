@@ -13,8 +13,8 @@ contract MostERC20 is IMostERC20 {
     using SafeMath for uint;
     using SafeMath for int;
 
-    string public constant override name = 'MOST';
-    string public constant override symbol = 'MOST';
+    string public constant override name = 'mBTC';
+    string public constant override symbol = 'mBTC';
     uint8 public constant override decimals = 9;
     uint public override totalSupply;
     uint public override epoch;
@@ -24,7 +24,7 @@ contract MostERC20 is IMostERC20 {
     uint public constant override PERIOD = 24 hours;
 
     uint private constant MAX_UINT256 = ~uint256(0);
-    uint private constant INITIAL_FRAGMENTS_SUPPLY = 1 * 10**6 * 10**uint(decimals);
+    uint private constant INITIAL_FRAGMENTS_SUPPLY = 42 * 10**4 * 10**uint(decimals); // 420K mBTC
     uint8 private constant RATE_BASE = 100;
     uint8 private constant UPPER_BOUND = 106;
     uint8 private constant LOWER_BOUND = 96;
@@ -33,8 +33,7 @@ contract MostERC20 is IMostERC20 {
     // Use the highest value that fits in a uint256 for max granularity.
     uint private constant TOTAL_GONS = MAX_UINT256 - (MAX_UINT256 % INITIAL_FRAGMENTS_SUPPLY);
 
-    // MAX_SUPPLY = maximum integer < (sqrt(4*TOTAL_GONS + 1) - 1) / 2
-    uint private constant MAX_SUPPLY = ~uint128(0);  // (2^128) - 1
+    uint private constant MAX_SUPPLY = 1 * 10**9 * 10**uint(decimals);  // 1 billion mBTC
 
     uint private gonsPerFragment;
 
@@ -138,9 +137,9 @@ contract MostERC20 is IMostERC20 {
 
         uint tokenBRemaining;
         if (address(this) == token0) {
-            tokenBRemaining = 10 ** uint(IERC20(token1).decimals() - 2);
+            tokenBRemaining = 10 ** uint(IERC20(token1).decimals() - 5);
         } else {
-            tokenBRemaining = 10 ** uint(IERC20(token0).decimals() - 2);
+            tokenBRemaining = 10 ** uint(IERC20(token0).decimals() - 5);
         }
         uint unitBase = RATE_BASE * tokenBRemaining;
         int256 supplyDelta;

@@ -19,7 +19,7 @@ contract Orchestrator is Ownable {
     uint8 private constant RATE_BASE = 100;
     uint8 private constant UPPER_BOUND = 106;
     uint8 private constant LOWER_BOUND = 96;
-    uint private constant MAX_SUPPLY = ~uint128(0);  // (2^128) - 1
+    uint private constant MAX_SUPPLY = 1 * 10**9 * 10**uint(9);  // 1 billion mBTC
 
     struct Transaction {
         bool enabled;

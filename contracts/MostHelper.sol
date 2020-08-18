@@ -16,7 +16,7 @@ contract MostHelper {
     uint8 private constant RATE_BASE = 100;
     uint8 private constant UPPER_BOUND = 106;
     uint8 private constant LOWER_BOUND = 96;
-    uint private constant MAX_SUPPLY = ~uint128(0);  // (2^128) - 1
+    uint private constant MAX_SUPPLY = 1 * 10**9 * 10**uint(9);
 
     address pair;
     address mostToken;
@@ -44,13 +44,13 @@ contract MostHelper {
             FixedPoint.uq112x112 memory price0Average = FixedPoint.uq112x112(uint224((price0Cumulative - mostERC20Token.price0CumulativeLast()) / timeElapsed));
             amountOut = price0Average.mul(amountIn).decode144();
             priceAverage = price0Average.mul(10 ** uint(mostERC20Token.decimals())).decode144();
-            tokenBRemaining = 10 ** uint(IERC20(token1).decimals() - 2);
+            tokenBRemaining = 10 ** uint(IERC20(token1).decimals() - 5);
         } else {
             require(mostToken == token1, 'MOST: INVALID_TOKEN');
             FixedPoint.uq112x112 memory price1Average = FixedPoint.uq112x112(uint224((price1Cumulative - mostERC20Token.price1CumulativeLast()) / timeElapsed));
             amountOut = price1Average.mul(amountIn).decode144();
             priceAverage = price1Average.mul(10 ** uint(mostERC20Token.decimals())).decode144();
-            tokenBRemaining = 10 ** uint(IERC20(token0).decimals() - 2);
+            tokenBRemaining = 10 ** uint(IERC20(token0).decimals() - 5);
         }
 
         uint unitBase = RATE_BASE * tokenBRemaining;

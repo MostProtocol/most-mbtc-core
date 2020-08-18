@@ -12,6 +12,10 @@ export function expandTo18Decimals(n: number): BigNumber {
   return bigNumberify(n).mul(bigNumberify(10).pow(18))
 }
 
+export function expandTo15Decimals(n: number): BigNumber {
+  return bigNumberify(n).mul(bigNumberify(10).pow(15))
+}
+
 export function expandTo9Decimals(n: number): BigNumber {
   return bigNumberify(n).mul(bigNumberify(10).pow(9))
 }
