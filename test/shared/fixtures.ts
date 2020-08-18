@@ -9,7 +9,7 @@ import IUniswapV2Pair from '@uniswap/v2-core/build/IUniswapV2Pair.json'
 
 import ERC20 from '../../build/ERC20.json'
 import MostERC20 from '../../build/MostERC20.json'
-import MostHelper from '../../build/MostHelper.json'
+import Orchestrator from '../../build/Orchestrator.json'
 
 interface V2Fixture {
   token: Contract
@@ -17,7 +17,7 @@ interface V2Fixture {
   token1: Contract
   factoryV2: Contract
   pair: Contract
-  mostHelper: Contract
+  orchestrator: Contract
 }
 
 export async function v2Fixture(provider: Web3Provider, [wallet]: Wallet[]): Promise<V2Fixture> {
@@ -33,7 +33,8 @@ export async function v2Fixture(provider: Web3Provider, [wallet]: Wallet[]): Pro
   const pairAddress = await factoryV2.getPair(tokenA.address, tokenB.address)
   const pair = new Contract(pairAddress, JSON.stringify(IUniswapV2Pair.abi), provider).connect(wallet)
 
-  const mostHelper = await deployContract(wallet, MostHelper, [pairAddress, tokenA.address])
+  const orchestrator = await deployContract(wallet, Orchestrator, [tokenA.address])
+  await orchestrator.addTransaction(pair.address, '0xfff6cae9') // sync()
 
   const token0Address = await pair.token0()
   const token = tokenA
@@ -46,6 +47,6 @@ export async function v2Fixture(provider: Web3Provider, [wallet]: Wallet[]): Pro
     token1,
     factoryV2,
     pair,
-    mostHelper
+    orchestrator
   }
 }
