@@ -2,14 +2,11 @@ pragma solidity =0.6.6;
 
 import './interfaces/IMostERC20.sol';
 import './interfaces/IERC20.sol';
-import '@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol';
-import '@uniswap/lib/contracts/libraries/FixedPoint.sol';
+import './interfaces/IMostOracle.sol';
 
-import './libraries/UniswapV2OracleLibrary.sol';
-import './libraries/UniswapV2Library.sol';
+import './libraries/SafeMath.sol';
 
 contract MostERC20 is IMostERC20 {
-    using FixedPoint for *;
     using SafeMath for uint;
     using SafeMath for int;
 
@@ -20,8 +17,6 @@ contract MostERC20 is IMostERC20 {
     uint public override epoch;
     mapping(address => uint) private gonBalanceOf;
     mapping(address => mapping(address => uint)) public override allowance;
-
-    uint public constant override PERIOD = 24 hours;
 
     uint private constant MAX_UINT256 = ~uint256(0);
     uint private constant INITIAL_FRAGMENTS_SUPPLY = 42 * 10**4 * 10**uint(decimals); // 420K mBTC
@@ -37,17 +32,9 @@ contract MostERC20 is IMostERC20 {
 
     uint private gonsPerFragment;
 
-    address public override pair;
+    address public override oracle;
     address public override rebaseSetter;
     address public override creator;
-    address public override token0;
-    address public override token1;
-
-    uint public override price0CumulativeLast;
-    uint public override price1CumulativeLast;
-    uint32 public override blockTimestampLast;
-    FixedPoint.uq112x112 private price0Average;
-    FixedPoint.uq112x112 private price1Average;
 
     event Approval(address indexed owner, address indexed spender, uint value);
     event Transfer(address indexed from, address indexed to, uint value);
@@ -63,19 +50,10 @@ contract MostERC20 is IMostERC20 {
         emit Transfer(address(0), msg.sender, totalSupply);
     }
 
-    function initialize(address factory, address tokenB) external override {
+    function initialize(address _oracle) external override {
         require(msg.sender == creator, 'MOST: FORBIDDEN'); // sufficient check
 
-        IUniswapV2Pair _pair = IUniswapV2Pair(UniswapV2Library.pairFor(factory, address(this), tokenB));
-        pair = address(_pair);
-        token0 = _pair.token0();
-        token1 = _pair.token1();
-        price0CumulativeLast = _pair.price0CumulativeLast(); // fetch the current accumulated price value (1 / 0)
-        price1CumulativeLast = _pair.price1CumulativeLast(); // fetch the current accumulated price value (0 / 1)
-        uint112 reserve0;
-        uint112 reserve1;
-        (reserve0, reserve1, blockTimestampLast) = _pair.getReserves();
-        require(reserve0 != 0 && reserve1 != 0, 'MOST: NO_RESERVES'); // ensure that there's liquidity in the pair
+        oracle = _oracle;
     }
 
     function _approve(address owner, address spender, uint value) private {
@@ -115,31 +93,18 @@ contract MostERC20 is IMostERC20 {
     function rebase() external override returns (uint) {
         require(msg.sender == rebaseSetter, 'MOST: FORBIDDEN'); // sufficient check
 
-        (uint price0Cumulative, uint price1Cumulative, uint32 blockTimestamp) =
-            UniswapV2OracleLibrary.currentCumulativePrices(pair);
-        uint32 timeElapsed = blockTimestamp - blockTimestampLast; // overflow is desired
-
-        // ensure that at least one full period has passed since the last update
-        require(timeElapsed >= PERIOD, 'MOST: PERIOD_NOT_ELAPSED');
+        IMostOracle mostOracle = IMostOracle(oracle);
+        mostOracle.update();
 
         epoch = epoch.add(1);
 
-        // overflow is desired, casting never truncates
-        // cumulative price is in (uq112x112 price * seconds) units so we simply wrap it after division by time elapsed
-        price0Average = FixedPoint.uq112x112(uint224((price0Cumulative - price0CumulativeLast) / timeElapsed));
-        price1Average = FixedPoint.uq112x112(uint224((price1Cumulative - price1CumulativeLast) / timeElapsed));
-
-        price0CumulativeLast = price0Cumulative;
-        price1CumulativeLast = price1Cumulative;
-        blockTimestampLast = blockTimestamp;
-
-        uint priceAverage = consult(address(this), 10**uint(decimals));
+        uint priceAverage = mostOracle.consult(address(this), 10**uint(decimals));
 
         uint tokenBRemaining;
-        if (address(this) == token0) {
-            tokenBRemaining = 10 ** uint(IERC20(token1).decimals() - 5);
+        if (address(this) == mostOracle.token0()) {
+            tokenBRemaining = 10 ** uint(IERC20(mostOracle.token1()).decimals() - 5);
         } else {
-            tokenBRemaining = 10 ** uint(IERC20(token0).decimals() - 5);
+            tokenBRemaining = 10 ** uint(IERC20(mostOracle.token0()).decimals() - 5);
         }
         uint unitBase = RATE_BASE * tokenBRemaining;
         int256 supplyDelta;
@@ -193,15 +158,5 @@ contract MostERC20 is IMostERC20 {
     function setCreator(address _creator) external override {
         require(msg.sender == creator, 'MOST: FORBIDDEN');
         creator = _creator;
-    }
-
-    // note this will always return 0 before update has been called successfully for the first time.
-    function consult(address token, uint amountIn) public view override returns (uint amountOut) {
-        if (token == token0) {
-            amountOut = price0Average.mul(amountIn).decode144();
-        } else {
-            require(token == token1, 'MOST: INVALID_TOKEN');
-            amountOut = price1Average.mul(amountIn).decode144();
-        }
     }
 }
