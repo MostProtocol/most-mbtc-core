@@ -120,7 +120,9 @@ describe('MostERC20', () => {
     await mineBlock(provider, blockTimestamp + 60 * 60 * 23)
     await expect(orchestrator.rebase(overrides)).to.be.reverted
     await mineBlock(provider, blockTimestamp + 60 * 60 * 24)
+    expect(await token.epoch()).to.eq(0)
     await orchestrator.rebase(overrides)
+    expect(await token.epoch()).to.eq(1)
 
     expect(await token.consult(token.address, 100)).to.eq('200000000000')
   })
@@ -134,7 +136,9 @@ describe('MostERC20', () => {
     expect(await token.balanceOf(pair.address)).to.eq(tokenAmount)
     const blockTimestamp = (await pair.getReserves())[2]
     await mineBlock(provider, blockTimestamp + 60 * 60 * 24)
+    expect(await token.epoch()).to.eq(0)
     await orchestrator.rebase(overrides)
+    expect(await token.epoch()).to.eq(1)
     expect(await token.consult(token.address, 100)).to.eq('200000000000')
     expect(await token.totalSupply()).to.eq('950000000000000')
     expect(await token.balanceOf(wallet.address)).to.eq('949995250000000')
@@ -152,7 +156,9 @@ describe('MostERC20', () => {
     expect(await token.balanceOf(pair.address)).to.eq(tokenLargeAmount)
     const blockTimestamp = (await pair.getReserves())[2]
     await mineBlock(provider, blockTimestamp + 60 * 60 * 24)
+    expect(await token.epoch()).to.eq(0)
     await orchestrator.rebase(overrides)
+    expect(await token.epoch()).to.eq(1)
     expect(await token.consult(token.address, 100)).to.eq('50000000000')
     expect(await token.totalSupply()).to.eq('1050000000000000')
     expect(await token.balanceOf(wallet.address)).to.eq('1049989500000000')
@@ -170,7 +176,9 @@ describe('MostERC20', () => {
     expect(await token.balanceOf(pair.address)).to.eq(tokenClose0Amount)
     const blockTimestamp = (await pair.getReserves())[2]
     await mineBlock(provider, blockTimestamp + 60 * 60 * 24)
+    expect(await token.epoch()).to.eq(0)
     await orchestrator.rebase(overrides)
+    expect(await token.epoch()).to.eq(1)
     expect(await token.totalSupply()).to.eq(TOTAL_SUPPLY)
     expect(await token.balanceOf(wallet.address)).to.eq('999950000000000')
     expect(await token.balanceOf(pair.address)).to.eq(tokenClose0Amount)
