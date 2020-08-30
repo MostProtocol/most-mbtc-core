@@ -10,6 +10,8 @@ import IUniswapV2Pair from '@uniswap/v2-core/build/IUniswapV2Pair.json'
 import ERC20 from '../../build/ERC20.json'
 import MostERC20 from '../../build/MostERC20.json'
 import Orchestrator from '../../build/Orchestrator.json'
+import SyncHelper from '../../build/SyncHelper.json'
+import MultipleTokenTimeLock from '../../build/MultipleTokenTimeLock.json'
 
 interface V2Fixture {
   token: Contract
@@ -18,6 +20,8 @@ interface V2Fixture {
   factoryV2: Contract
   pair: Contract
   orchestrator: Contract
+  syncHelper: Contract
+  timelock: Contract
 }
 
 export async function v2Fixture(provider: Web3Provider, [wallet]: Wallet[]): Promise<V2Fixture> {
@@ -36,6 +40,9 @@ export async function v2Fixture(provider: Web3Provider, [wallet]: Wallet[]): Pro
   const orchestrator = await deployContract(wallet, Orchestrator, [tokenA.address])
   await orchestrator.addTransaction(pair.address, '0xfff6cae9') // sync()
 
+  const syncHelper = await deployContract(wallet, SyncHelper)
+  const timelock = await deployContract(wallet, MultipleTokenTimeLock, [wallet.address, Math.floor(Date.now() / 1000) + 24 * 3600])
+
   const token0Address = await pair.token0()
   const token = tokenA
   const token0 = tokenA.address === token0Address ? tokenA : tokenB
@@ -47,6 +54,8 @@ export async function v2Fixture(provider: Web3Provider, [wallet]: Wallet[]): Pro
     token1,
     factoryV2,
     pair,
-    orchestrator
+    orchestrator,
+    syncHelper,
+    timelock
   }
 }
